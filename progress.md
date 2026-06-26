@@ -1,10 +1,10 @@
 # Nyaya - Legal Document Processing Pipeline
 
 ## Project Overview
-A document ingestion and processing system for Indian legal documents from the Pile-of-Law dataset. The system scrapes and processes legal case documents, extracts embeddings, and enables semantic search capabilities using sentence transformers and FAISS.
+A document ingestion and processing system for Indian legal documents from the Pile-of-Law dataset. The system collects legal case documents, normalizes them into JSON, chunks the text, generates embeddings, builds a FAISS index, and supports semantic search.
 
 ## Current Phase
-**EARLY DEVELOPMENT** - Infrastructure and Core Components Setup
+**PROTOTYPE STAGE** - Core ingestion, chunking, embedding, and search pieces are in place
 
 ## Project Status
 
@@ -12,20 +12,26 @@ A document ingestion and processing system for Indian legal documents from the P
 - Project structure initialized
 - Python environment setup with venv
 - Dependencies defined (requests, beautifulsoup4, sentence-transformers, faiss-cpu, datasets)
-- Data ingestion logic drafted in `data/scraper.py`
-- Document schema defined in `data/processed/doc_001.json` (fields: doc_id, title, court, year, url, text)
+- Dataset ingestion draft added in `src/ingest/scraper.py`
+- JSON export helper created in `src/ingest/save_json.py`
+- Document processing samples created in `data/processed/`
+- Chunking pipeline implemented in `src/ingest/chunker.py`
+- Embedding and FAISS index builder implemented in `src/ingest/embedder.py`
+- Semantic query script implemented in `src/ingest/query.py`
+- Sample index artifacts created in `data/index/`
 
 ### 🔄 In Progress
-- Setting up data ingestion pipeline
-- Implementing document processing workflow
+- Validating the end-to-end pipeline from raw text to search results
+- Cleaning up ad-hoc document export and making JSON generation reusable
+- Improving path handling and error handling across ingest scripts
 
 ### ⏳ Pending
-- Complete `src/ingest.py` implementation
-- Add document embedding generation
-- Set up FAISS vector store
-- Build semantic search interface
-- Add error handling and logging
-- Write unit tests
+- Add a single orchestrated pipeline entry point
+- Replace one-off export code with a reusable document writer
+- Add logging and structured error handling
+- Add unit tests for chunking, embedding, and query behavior
+- Add integration tests for the ingestion-to-index flow
+- Improve documentation and usage examples
 
 ## Technical Stack
 - **Data Source**: Hugging Face (pile-of-law/indiankanoon dataset)
@@ -35,19 +41,22 @@ A document ingestion and processing system for Indian legal documents from the P
 - **Web Scraping**: BeautifulSoup4
 
 ## Key Files
-- `data/scraper.py` - Document ingestion from HF datasets (partially implemented)
-- `src/ingest.py` - Main processing pipeline (EMPTY - needs implementation)
-- `data/processed/doc_001.json` - Sample document schema with fields: doc_id, title, court, year, url, text
+- `src/ingest/scraper.py` - Hugging Face dataset ingestion draft
+- `src/ingest/save_json.py` - One-off helper used to write sample processed documents
+- `src/ingest/chunker.py` - Splits processed judgments into overlapping chunks
+- `src/ingest/embedder.py` - Builds embeddings and writes the FAISS index
+- `src/ingest/query.py` - Runs semantic search against the index
+- `data/processed/` - Processed JSON documents
+- `data/chunks/` - Chunked document JSON files
+- `data/index/faiss.index` - FAISS vector index
 - `requirements.txt` - Python dependencies
 
 ## Next Steps
-1. Complete `src/ingest.py` implementation with document loading and processing
-2. Populate `data/processed/` with actual documents from HF dataset
-3. Add document embedding generation using sentence-transformers
-4. Initialize and populate FAISS vector store
-5. Build query interface for semantic search
-6. Add error handling and logging
-7. Write unit tests
+1. Add a single pipeline script that runs ingest, chunk, embed, and query preparation in order
+2. Harden the scraper and JSON writer so processed documents are created consistently
+3. Add logging, validation, and error handling around file reads and dataset records
+4. Add tests for chunking, embedding metadata, and search result formatting
+5. Document how to regenerate processed docs, chunks, and the FAISS index
 
 ---
-*Last Updated: 2026-06-24 (Updated with current project state)*
+*Last Updated: 2026-06-25 (Updated with current project state)*

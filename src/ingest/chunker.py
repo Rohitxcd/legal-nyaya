@@ -8,6 +8,7 @@ Usage:
 
 import json
 import os
+import re
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -19,26 +20,29 @@ CHUNK_OVERLAP = 64     # words of overlap between chunks
 
 # ── Core logic ────────────────────────────────────────────────────────────────
 
+
+
 def split_into_chunks(text: str, chunk_size: int, overlap: int) -> list[str]:
-    """
-    Splits a long text into overlapping word-based chunks.
-
-    Example with chunk_size=5, overlap=2:
-      words = [w1, w2, w3, w4, w5, w6, w7, w8]
-      chunk_1 = w1 w2 w3 w4 w5
-      chunk_2 = w4 w5 w6 w7 w8   ← starts 2 words back (overlap)
-    """
-    words  = text.split()
-    chunks = []
-    start  = 0
-    step   = chunk_size - overlap   # how far to advance each time
-
-    while start < len(words):
-        end   = start + chunk_size
-        chunk = " ".join(words[start:end])
-        chunks.append(chunk)
-        start += step
-
+    # split on sentence boundaries first
+    sentences = re.split(r'(?<=[.!?])\s+', text.strip())
+    
+    chunks, current, current_words = [], [], 0
+    
+    for sentence in sentences:
+        words = sentence.split()
+        if current_words + len(words) > chunk_size and current:
+            chunks.append(" ".join(current))
+            # keep last `overlap` words for next chunk
+            overlap_words = " ".join(current).split()[-overlap:]
+            current = overlap_words + words
+            current_words = len(current)
+        else:
+            current.extend(words)
+            current_words += len(words)
+    
+    if current:
+        chunks.append(" ".join(current))
+    
     return chunks
 
 
