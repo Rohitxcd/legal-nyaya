@@ -3,3 +3,5 @@ beautifulsoup4==4.12.3
 sentence-transformers==2.7.0
 faiss-cpu==1.8.0
 datasets
+groq
+python-dotenv 

@@ -9,3 +9,4 @@ data/index/
 venv/
 .venv/
 env/
+data/eval/
