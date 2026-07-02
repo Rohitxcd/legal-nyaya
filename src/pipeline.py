@@ -1,3 +1,5 @@
+from time import time
+
 from dotenv import load_dotenv
 load_dotenv()
 """
@@ -13,6 +15,7 @@ import os
 import sys
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from groq import Groq
+from groq import RateLimitError, APIConnectionError, APIStatusError
 
 # ── Import retrieval layer ────────────────────────────────────────────────────
 # Run all scripts from project root: python src/pipeline.py "question"
@@ -41,6 +44,34 @@ Question: {question}
 
 Answer:"""
 
+def call_groq_with_retry(groq_client, prompt: str, max_retries: int = 3, base_delay: float = 2.0) -> str:
+    """
+    Calls Groq with exponential backoff on rate limits / transient errors.
+    Raises the last exception if all retries are exhausted.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            response = groq_client.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.0,
+            )
+            return response.choices[0].message.content.strip()
+
+        except RateLimitError as e:
+            if attempt == max_retries:
+                raise
+            # Groq's 429 body often includes a suggested wait time; fall back to backoff if not parseable
+            delay = base_delay * (2 ** attempt)
+            print(f"  Rate limited (attempt {attempt+1}/{max_retries}). Retrying in {delay:.1f}s...")
+            time.sleep(delay)
+
+        except (APIConnectionError, APIStatusError) as e:
+            if attempt == max_retries:
+                raise
+            delay = base_delay * (2 ** attempt)
+            print(f"  Groq API error (attempt {attempt+1}/{max_retries}): {e}. Retrying in {delay:.1f}s...")
+            time.sleep(delay)
 
 # ── Core pipeline ─────────────────────────────────────────────────────────────
 
@@ -62,13 +93,9 @@ def run_pipeline(question: str, index, metadata, model, reranker, groq_client) -
     # Step 4: Build prompt
     prompt = build_prompt(question, contexts)
 
-    # Step 5: Call Groq
-    response = groq_client.chat.completions.create(
-        model=GROQ_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.0,   # deterministic — important for eval consistency
-    )
-    answer = response.choices[0].message.content.strip()
+ 
+   # Step 5: Call Groq (with retry on rate limit / transient errors)
+    answer = call_groq_with_retry(groq_client, prompt)
 
     return {
         "question": question,
