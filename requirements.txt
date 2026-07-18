@@ -5,3 +5,4 @@ faiss-cpu==1.8.0
 datasets
 groq
 python-dotenv 
+langchain-openai
