@@ -1,4 +1,4 @@
-from time import time
+import time
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -26,16 +26,16 @@ from src.ingest.query import load_index, search, rerank
 
 MODEL_NAME    = "sentence-transformers/all-MiniLM-L6-v2"
 RERANKER_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
-GROQ_MODEL = "llama-3.1-8b-instant"
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 # ── Prompt ────────────────────────────────────────────────────────────────────
 
 def build_prompt(question: str, contexts: list) -> str:
     context_text = "\n\n".join(f"[{i+1}] {c}" for i, c in enumerate(contexts))
-    return f"""You are a legal assistant specializing in Indian Supreme Court judgements.
-Answer the question based ONLY on the provided context excerpts from real judgements.
-If the answer cannot be found in the context, say "I cannot find sufficient information in the provided judgements to answer this question."
-Do not add any information outside of what is provided.
+    return f"""You are a legal assistant  specializing in Indian Supreme Court judgements.
+Answer the question based ONLY on the provided  context excerpts from real judgements.
+If the answer cannot be found in the context,  say "I cannot find sufficient information in the provided judgements to answer this question."
+Do not add any information outside of what is  provided
 
 Context:
 {context_text}
