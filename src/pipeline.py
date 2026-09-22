@@ -35,7 +35,7 @@ def build_prompt(question: str, contexts: list) -> str:
     return f"""You are a legal assistant  specializing in Indian Supreme Court judgements.
 Answer the question based ONLY on the provided  context excerpts from real judgements.
 If the answer cannot be found in the context,  say "I cannot find sufficient information in the provided judgements to answer this question."
-Do not add any information outside of what is  provided
+Do not add any information outside of what is  provided.
 
 Context:
 {context_text}
