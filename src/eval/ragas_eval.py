@@ -37,9 +37,15 @@ from ragas.metrics import faithfulness, answer_relevancy, context_utilization
 from ragas.llms import LangchainLLMWrapper
 from ragas.embeddings import HuggingfaceEmbeddings  # native ragas wrapper — no langchain_huggingface needed
 
-from langchain_groq import ChatGroq
+from langchain_groq import ChatGroq 
 
-# ── Config ────────────────────────────────────────────────────────────────────
+
+
+import time
+print("Imports done, starting main()...", flush=True)
+t0 = time.time()
+
+# ── Config ──────────────────────────────────────────────────────────────────── 
 
 QUESTIONS_PATH  = "data/questions.json"
 OUTPUT_PATH     = "data/eval/ragas_baseline.csv"
@@ -115,12 +121,11 @@ def run_ragas(results: list) -> pd.DataFrame:
     })
 
     # Groq as evaluator LLM — free, no OpenAI key needed
-    evaluator_llm = LangchainLLMWrapper(
-        ChatGroq(
-            model=GROQ_MODEL,
-            api_key=os.getenv("GROQ_API_KEY"),
-            temperature=0.0,
-        )
+    evaluator_llm = ChatGroq(
+        model="openai/gpt-oss-120b",
+        api_key=os.getenv("GROQ_API_KEY"),
+        temperature=0.0,
+        stop_sequences=None,
     )
 
     # ragas' own HuggingFace embeddings wrapper for Answer Relevancy metric
