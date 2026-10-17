@@ -1,62 +1,37 @@
-# Nyaya - Legal Document Processing Pipeline
+# Nyāya Project Journal
 
-## Project Overview
-A document ingestion and processing system for Indian legal documents from the Pile-of-Law dataset. The system collects legal case documents, normalizes them into JSON, chunks the text, generates embeddings, builds a FAISS index, and supports semantic search.
-
-## Current Phase
-**PROTOTYPE STAGE** - Core ingestion, chunking, embedding, and search pieces are in place
-
-## Project Status
-
-### ✅ Completed
-- Project structure initialized
-- Python environment setup with venv
-- Dependencies defined (requests, beautifulsoup4, sentence-transformers, faiss-cpu, datasets)
-- Dataset ingestion draft added in `src/ingest/scraper.py`
-- JSON export helper created in `src/ingest/save_json.py`
-- Document processing samples created in `data/processed/`
-- Chunking pipeline implemented in `src/ingest/chunker.py`
-- Embedding and FAISS index builder implemented in `src/ingest/embedder.py`
-- Semantic query script implemented in `src/ingest/query.py`
-- Sample index artifacts created in `data/index/`
-
-### 🔄 In Progress
-- Validating the end-to-end pipeline from raw text to search results
-- Cleaning up ad-hoc document export and making JSON generation reusable
-- Improving path handling and error handling across ingest scripts
-
-### ⏳ Pending
-- Add a single orchestrated pipeline entry point
-- Replace one-off export code with a reusable document writer
-- Add logging and structured error handling
-- Add unit tests for chunking, embedding, and query behavior
-- Add integration tests for the ingestion-to-index flow
-- Improve documentation and usage examples
-
-## Technical Stack
-- **Data Source**: Hugging Face (pile-of-law/indiankanoon dataset)
-- **NLP**: sentence-transformers (embeddings)
-- **Vector Store**: FAISS (semantic search)
-- **Data Processing**: datasets library
-- **Web Scraping**: BeautifulSoup4
-
-## Key Files
-- `src/ingest/scraper.py` - Hugging Face dataset ingestion draft
-- `src/ingest/save_json.py` - One-off helper used to write sample processed documents
-- `src/ingest/chunker.py` - Splits processed judgments into overlapping chunks
-- `src/ingest/embedder.py` - Builds embeddings and writes the FAISS index
-- `src/ingest/query.py` - Runs semantic search against the index
-- `data/processed/` - Processed JSON documents
-- `data/chunks/` - Chunked document JSON files
-- `data/index/faiss.index` - FAISS vector index
-- `requirements.txt` - Python dependencies
-
-## Next Steps
-1. Add a single pipeline script that runs ingest, chunk, embed, and query preparation in order
-2. Harden the scraper and JSON writer so processed documents are created consistently
-3. Add logging, validation, and error handling around file reads and dataset records
-4. Add tests for chunking, embedding metadata, and search result formatting
-5. Document how to regenerate processed docs, chunks, and the FAISS index
+Append-only. One entry per work session: what I did, result, what I learned/decided, next.
+Raw outputs live in `data/eval/`, not here.
 
 ---
-*Last Updated: 2026-06-25 (Updated with current project state)*
+
+## Project summary (written 2026-10-17, covers everything before this date)
+
+**Goal:** a semantic search engine over Indian Supreme Court judgements, built as the main ML portfolio piece for MAANG-level internship applications (target window: Jan-Feb 2027).
+
+**Architecture:** fine-tuned sentence-transformer -> FAISS retrieval -> cross-encoder reranking -> Groq LLM synthesis. RAGAS measures before/after fine-tuning. Planned: FastAPI on Railway, Next.js on Vercel, Supabase query logging, HuggingFace model, private /dashboard page for engineering metrics and annotated failure cases.
+
+**Locked decisions**
+- No LangChain in the core pipeline (every layer must be explainable from first principles). LangChain only as a thin adapter for the RAGAS evaluator.
+- all-MiniLM-L6-v2 is the intentionally weak pre-fine-tune baseline.
+- The 50-question golden set is permanent: a regression suite for every future pipeline change.
+- Reference-free RAGAS metrics (Faithfulness, Answer Relevancy, Context Precision) are the backbone. "Insufficient information" answers are correct behaviour, not failures.
+- Dependencies pinned (ragas==0.1.21, langchain-community==0.2.16, langchain-groq==0.1.9). Never `pip install -U`; install pinned packages in one command.
+- Sanity-check a single question before any full 50-question run.
+- Hybrid search (BM25 + RRF) and GraphRAG deferred, not abandoned.
+
+**History**
+- *Week 2 (Sep 2026):* core pipeline working end to end on 4 judgements / 117 chunks. Two-stage retrieval (FAISS top-20 -> cross-encoder -> top-5). Synthesis and RAGAS judge both moved to openai/gpt-oss-120b on Groq (old llama-3.1-8b-instant deprecated, Ollama judge removed). Fixed two bugs: deprecated model name, and `from time import time` shadowing the `time` module (broke retry sleep).
+- *Oct 2026:* scaled the corpus from 4 judgements to the AWS Open Data Supreme Court set. 2023 English done: 854 judgements, 63,928 chunks (160 words / 30 overlap), index rebuilt with MiniLM. doc_id comes from the neutral citation (e.g. 2023INSC600). Plan: baseline + fine-tune on 2023, then scale to more years (7k+ target) with the fine-tuned model.
+
+---
+
+## 2026-10-17: Retrieval baseline
+
+- Wrote 50 golden questions (data/golden_questions.json, answer key in `doc_ids`). Built retrieval-only eval: src/eval/retrieval_eval.py.
+- Result (prod config: FAISS top-20 -> rerank -> top-5, 2023 corpus): Hit 88%, Recall 80%, MRR 82.2%, NDCG 82.2%. FAISS alone at K=5: Hit 82%, NDCG 74.5%. Saved in data/eval/retrieval_baseline_2026-10-17_1140.json.
+- Reranker adds ~8 NDCG points over FAISS alone.
+- Inspected the 6 misses (q027, q030, q032, q037, q038, q044): 4 are false misses (search returned good answers that the answer key does not list), 2 are real.
+- Eval is easy because questions were written from the judgements themselves. Treat it as a regression check, not proof of quality. The "~37% NDCG" fine-tuning target is unrealistic; max headroom on Hit@5 is 12 points.
+- Found: duplicate chunks fill the top-5 (q030, q032); rare exact words are ignored (q037, "Ranbir"). Evidence for dedup and for the deferred hybrid search.
+- Decision: no fixes yet. Next: 50-question RAGAS baseline.
